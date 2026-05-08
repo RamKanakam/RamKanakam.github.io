@@ -3,5 +3,5 @@
 Contact: mailto:sriramk.p819@gmail.com
 Expires: 2030-04-01T00:00:00.000Z
 Preferred-Languages: en
-Policy: https://nakshatrapatham.com/security-policy
+Policy: https://nakshatrapatham.com/security-policy.html
 

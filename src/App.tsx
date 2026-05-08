@@ -317,7 +317,8 @@ function App() {
 
       <footer className="footer">
         <p>Anonymous for now. Built for Telugu, English, and the worlds between.</p>
-        <a href="#top">Back to top</a>
+        <a href="#top">Back to top</a> |{' '}
+        <a href="/security-policy.html" target="_blank" rel="noopener noreferrer">Security Policy</a>
       </footer>
     </main>
   )
