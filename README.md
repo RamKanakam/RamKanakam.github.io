@@ -139,108 +139,69 @@ If no content file exists for the active language, the spotlight card shows `ver
 
 ### Step 4 — Add a custom theme (optional)
 
-Each work can have its own full-site palette and font pairing that activates when the reader opens it. The home page always uses the default warm amber theme.
+Each work can have its own full-site palette, fonts, and carousel mood that activates when the reader opens it. **The entire theme is configured in the article's markdown frontmatter** — no code changes needed for the common case. The home page always uses the default warm amber theme.
 
-#### 4a. Name the theme
+#### 4a. Add `theme-*` keys to the article frontmatter
 
-Add `theme: 'my-theme-name'` to the work entry in `works.ts`.
+Open the content file (e.g. `src/content/articles/my-work-id/en.md`) and add `theme-*` keys to the YAML frontmatter. Every key is optional — omit any you don't want to change.
 
-#### 4b. Register the font (if using a custom Google Font)
+```yaml
+---
+id: my-work-id
+lang: en
+title: My Work Title
+# ... other frontmatter fields ...
 
-In `src/App.tsx`, add an entry to the `THEME_FONTS` map inside the `useEffect`. Each theme gets an **array** of URLs — keep English and Telugu fonts in separate entries so they can be swapped independently:
+# ── Theme configuration ──────────────────────────────────────────────
+# theme-key: triggers a CSS data-theme block for advanced surface overrides
+#            (see Step 4b). Omit if you only need palette/font changes.
+theme-key: my-theme-name
 
-```ts
-const THEME_FONTS: Record<string, string[]> = {
-  'my-theme-name': [
-    // English fonts
-    'https://fonts.googleapis.com/css2?family=YourFont:wght@400;700&display=swap',
-    // Telugu fonts (optional — omit if using system Telugu fallbacks)
-    'https://fonts.googleapis.com/css2?family=YourTeluguFont&display=swap',
-  ],
-}
+# Color tokens — all six transition smoothly on open/close
+theme-paper: "#f0ede8"       # page background
+theme-ink: "#1a1a2e"         # headings, strong text, buttons
+theme-soft-ink: "#3a3a5c"    # body text
+theme-muted: "#6b6b8a"       # eyebrows, meta labels
+theme-rust: "#5c4d8a"        # accent color, CTA button background
+theme-sage: "#dddcf5"        # subtle tinted surfaces
+
+# English fonts
+theme-serif: "'YourFont', Georgia, serif"
+theme-sans: "'YourSansFont', Inter, sans-serif"
+
+# Telugu fonts — configured independently from English.
+# Omit either to keep the default Noto Telugu system stack.
+theme-serif-te: "'YourTeluguFont', 'Noto Serif Telugu', serif"
+theme-sans-te: "'YourTeluguSans', 'Noto Sans Telugu', sans-serif"
+
+# Carousel gradient stops (top of page backdrop)
+theme-carousel-from: "#6b4fa0"
+theme-carousel-via: "#3d2e6e"
+theme-carousel-to: "#1a1228"
+
+# Google Fonts to lazy-load — pipe-separated URLs.
+# English and Telugu fonts can be in separate entries.
+# These links are injected only while the reader is viewing this work.
+theme-fonts: "https://fonts.googleapis.com/css2?family=YourFont:wght@400;700&display=swap | https://fonts.googleapis.com/css2?family=YourTeluguFont&display=swap"
+
+# Typography tuning — all optional. These drive CSS custom properties so the
+# font characteristics from your chosen typeface are reflected everywhere.
+theme-heading-letter-spacing: "-0.02em"  # tighten/loosen display headings
+theme-heading-font-weight: "800"         # weight of h1/h2/h3 across the site
+theme-body-line-height: "1.9"            # article paragraph leading
+theme-body-letter-spacing: "0.01em"      # article paragraph tracking
+theme-h2-font-style: "italic"            # style for section headers inside the article
+theme-h2-font-weight: "600"              # weight for section headers inside the article
+---
 ```
 
-All `<link>` tags are injected only while the reader is viewing this work — the home page pays zero loading cost.
+**How language fallback works:** The active language's file is read first; any missing `theme-*` keys fall back to the other language's file. The recommended approach is to put the full theme config in `en.md` and only add language-specific overrides (if any) to `te.md`. When reading in Telugu, the palette from `en.md` applies automatically, with any `te.md` overrides winning.
 
-#### 4c. Write the CSS theme block
+#### 4b. CSS surface overrides (optional, advanced)
 
-At the bottom of `src/App.css`, add a block scoped to `html[data-theme='my-theme-name']`.
+Glass card surfaces, borders, and dot textures automatically inherit the active palette via `color-mix()` — no CSS needed for those. Add a `html[data-theme='my-theme-name']` block in `src/App.css` only if you need effects that can't be expressed as token values: non-standard background patterns, custom animations, or unique shapes.
 
-The **minimum** required block overrides the design tokens:
-
-```css
-html[data-theme='my-theme-name'] {
-  /* Page background color */
-  --paper: #f0ede8;
-  /* Primary text */
-  --ink: #1a1a2e;
-  /* Secondary text */
-  --soft-ink: #3a3a5c;
-  /* De-emphasized text */
-  --muted: #6b6b8a;
-  /* Border color (as rgba) */
-  --line: rgba(26, 26, 46, 0.12);
-  /* Accent color */
-  --rust: #5c4d8a;
-  /* Subtle background tint */
-  --sage: #dddcf5;
-
-  /* English fonts — override if using custom ones from THEME_FONTS */
-  --serif: 'YourFont', Georgia, serif;
-  --sans: 'YourSansFont', Inter, sans-serif;
-
-  /* Telugu fonts — configured independently from English.
-     --serif-te is used for Telugu article body and headings.
-     --sans-te is used for Telugu UI elements.
-     Omit either to fall back to the default Noto Telugu stack. */
-  --serif-te: 'YourTeluguFont', 'Noto Serif Telugu', Georgia, serif;
-  --sans-te: 'YourTeluguSans', 'Noto Sans Telugu', sans-serif;
-}
-```
-
-All six color tokens (`--paper`, `--ink`, `--soft-ink`, `--muted`, `--rust`, `--sage`) are registered as typed CSS `<color>` properties and transition globally over 640 ms when the theme activates or resets. Every element on the page that consumes these variables shifts automatically — no extra selectors needed for basic theming.
-
-Font variables (`--serif`, `--sans`, `--serif-te`, `--sans-te`) are applied immediately on theme switch (fonts do not animate — a mid-swap blend would look broken). The article body automatically uses `--serif-te` / `--sans-te` when the active language is Telugu, and `--serif` / `--sans` when English — no additional code required.
-
-**Optional surface overrides** — add these if the defaults don't sit well with your palette:
-
-```css
-/* Body grid lines */
-html[data-theme='my-theme-name'] body {
-  background:
-    linear-gradient(rgba(...) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(...) 1px, transparent 1px),
-    var(--paper);
-  background-size: 48px 48px;
-}
-
-/* Carousel gradient backdrop */
-html[data-theme='my-theme-name'] .carousel-section::before {
-  background: linear-gradient(135deg, #aaa 0%, #555 48%, #111 100%);
-}
-
-/* Spotlight card surface */
-html[data-theme='my-theme-name'] .spotlight-card {
-  background: rgba(240, 237, 232, 0.9);
-  border-color: rgba(26, 26, 46, 0.14);
-}
-
-/* CTA button accent */
-html[data-theme='my-theme-name'] .read-link:not(.read-link--disabled) {
-  background: #3d2e6e;
-}
-
-/* Typography fine-tuning (optional) */
-html[data-theme='my-theme-name'] .article-body p {
-  font-family: var(--serif); /* English body — --serif-te is applied automatically for Telugu */
-  line-height: 1.9;
-}
-
-html[data-theme='my-theme-name'] .article-body h2,
-html[data-theme='my-theme-name'] .article-body h3 {
-  font-style: italic;
-}
-```
+Most themes won't need this step at all — palette, font, and typography changes from frontmatter are enough for a strong visual shift.
 
 ---
 
@@ -263,8 +224,8 @@ src/
     index.ts          ← TypeScript types (Work, WorkVersion, etc.)
   utils/
     content.ts        ← Helpers: getContent(), formatDate(), isLive(), etc.
-  App.tsx             ← Main app shell, theme injection, THEME_FONTS map
-  App.css             ← All layout, component, and theme styles
+  App.tsx             ← Main app shell, theme injection via frontmatter
+  App.css             ← All layout, component styles; escape hatch for advanced theme effects
   index.css           ← CSS reset, design tokens, @property registrations
 
 public/
@@ -284,12 +245,21 @@ public/
 | `--ink`      | `#241a16`   | Headings, strong text, buttons  |
 | `--soft-ink` | `#5f514a`   | Body text                       |
 | `--muted`    | `#7c6f67`   | Eyebrows, meta labels, captions |
-| `--rust`     | `#9d4630`   | Accent, links, highlights       |
+| `--rust`     | `#9d4630`   | Accent color, CTA button background |
 | `--sage`     | `#e8eee2`   | Subtle tinted backgrounds       |
 | `--serif`    | Georgia + Noto Serif fallbacks | English display headings, brand name |
 | `--sans`     | Inter + system fallbacks | English body text, UI labels |
 | `--serif-te` | Noto Serif Telugu + Georgia fallback | Telugu article body and headings |
 | `--sans-te`  | Noto Sans Telugu + Inter fallback | Telugu UI elements |
+| `--carousel-from` | `#d5bd82` | Carousel backdrop gradient — start |
+| `--carousel-via`  | `#a48758` | Carousel backdrop gradient — mid   |
+| `--carousel-to`   | `#675436` | Carousel backdrop gradient — end   |
+| `--heading-letter-spacing` | `-0.04em` | Letter-spacing for h1/h2/h3 site-wide |
+| `--heading-font-weight` | `850` | Font-weight for h1/h2/h3 site-wide |
+| `--body-line-height` | `1.8` | Line-height for article body paragraphs |
+| `--body-letter-spacing` | `normal` | Letter-spacing for article body paragraphs |
+| `--h2-font-style` | `normal` | Font-style for section headings inside the article |
+| `--h2-font-weight` | `850` | Font-weight for section headings inside the article |
 
 
 ## React Compiler

@@ -21,6 +21,17 @@
   /* Telugu fonts — independently configurable per theme */
   --serif-te: 'Noto Serif Telugu', Georgia, serif;
   --sans-te: 'Noto Sans Telugu', Inter, ui-sans-serif, sans-serif;
+  /* Carousel gradient stops */
+  --carousel-from: #d5bd82;
+  --carousel-via: #a48758;
+  --carousel-to: #675436;
+  /* Typography — overrideable per article via frontmatter theme-* keys */
+  --heading-letter-spacing: -0.04em;
+  --heading-font-weight: 850;
+  --body-line-height: 1.8;
+  --body-letter-spacing: normal;
+  --h2-font-style: normal;
+  --h2-font-weight: 850;
 
   color: var(--soft-ink);
   background: var(--paper);

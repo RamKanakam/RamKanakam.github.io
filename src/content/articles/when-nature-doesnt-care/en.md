@@ -7,6 +7,27 @@ status: published
 tags: [Philosophy, Rationality]
 readTime: "5 min read"
 cover: /images/articles/when-nature-doesnt-care/cover.en.jpg
+theme-key: nature-indifferent
+theme-paper: "#eceff4"
+theme-ink: "#1b1e28"
+theme-soft-ink: "#464c62"
+theme-muted: "#6a748a"
+theme-rust: "#2d3f55"
+theme-sage: "#d5dde8"
+theme-serif: "'Spectral', Georgia, 'Noto Serif Telugu', 'Noto Serif', serif"
+theme-sans: "'DM Sans', Inter, ui-sans-serif, system-ui, sans-serif"
+theme-serif-te: "'Tiro Telugu', 'Noto Serif Telugu', Georgia, serif"
+theme-sans-te: "'Noto Sans Telugu', 'DM Sans', Inter, sans-serif"
+theme-carousel-from: "#4c6278"
+theme-carousel-via: "#2d3f55"
+theme-carousel-to: "#1a2535"
+theme-fonts: "https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;0,800;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,700;0,9..40,900;1,9..40,400&display=swap | https://fonts.googleapis.com/css2?family=Tiro+Telugu:ital@0;1&display=swap"
+theme-heading-letter-spacing: "-0.02em"
+theme-heading-font-weight: "800"
+theme-body-line-height: "1.9"
+theme-body-letter-spacing: "0.01em"
+theme-h2-font-style: "italic"
+theme-h2-font-weight: "600"
 ---
 
 ## Origins

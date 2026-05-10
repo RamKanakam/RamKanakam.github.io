@@ -10,7 +10,7 @@ import './App.css'
 
 import type { Category, Language, SortDirection } from './types'
 import { works } from './data/works'
-import { hasLanguage, sortByDate, nextLanguage, getContent } from './utils/content'
+import { hasLanguage, sortByDate, nextLanguage, getContent, getThemeConfig } from './utils/content'
 import { FilterTray } from './components/FilterTray'
 import { CoverArt } from './components/CoverArt'
 import { EmptyState } from './components/EmptyState'
@@ -55,43 +55,61 @@ function App() {
   const activeWork = filteredWorks[activeIndex] ?? null
 
   // Apply per-work page theme while reading; revert to default on close.
+  // Theme config is read from the article's own frontmatter (theme-* keys),
+  // so adding or changing a theme requires no code changes — only frontmatter edits.
   useEffect(() => {
-    const theme = isReading && activeWork?.theme ? activeWork.theme : null
     const el = document.documentElement
 
-    // Inject Google Fonts <link> tags for themes that ship custom font pairings.
-    // Each theme can supply separate URLs for English and Telugu fonts.
-    // Links are removed when the user leaves — the home page loads nothing.
-    const THEME_FONTS: Record<string, string[]> = {
-      'nature-indifferent': [
-        // English: Spectral (literary serif) + DM Sans (geometric sans)
-        'https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;0,800;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,700;0,9..40,900;1,9..40,400&display=swap',
-        // Telugu: Tiro Telugu (classic literary Telugu serif)
-        'https://fonts.googleapis.com/css2?family=Tiro+Telugu:ital@0;1&display=swap',
-      ],
+    if (!isReading || !activeWork) {
+      el.removeAttribute('data-theme')
+      return
     }
 
-    const linkEls: HTMLLinkElement[] = []
-    if (theme) {
-      el.setAttribute('data-theme', theme)
-      const fontHrefs = THEME_FONTS[theme] ?? []
-      fontHrefs.forEach((href, i) => {
+    const themeConfig = getThemeConfig(activeWork.category, activeWork.id, language)
+
+    // CSS custom property tokens — applied as inline styles on <html> so they
+    // override :root defaults for the duration of the reading session.
+    const CSS_TOKENS = [
+      'paper', 'ink', 'soft-ink', 'muted', 'rust', 'sage',
+      'serif', 'sans', 'serif-te', 'sans-te',
+      'carousel-from', 'carousel-via', 'carousel-to',
+      'heading-letter-spacing', 'heading-font-weight',
+      'body-line-height', 'body-letter-spacing',
+      'h2-font-style', 'h2-font-weight',
+    ]
+    const appliedTokens: string[] = []
+    for (const token of CSS_TOKENS) {
+      if (themeConfig[token]) {
+        el.style.setProperty(`--${token}`, themeConfig[token])
+        appliedTokens.push(token)
+      }
+    }
+
+    // theme-key sets data-theme — available as an escape hatch for CSS effects
+    // that can't be expressed as token values (patterns, animations, etc.).
+    if (themeConfig['key']) el.setAttribute('data-theme', themeConfig['key'])
+
+    // Inject Google Fonts <link> tags — pipe-separated URLs in theme-fonts.
+    // Links are removed on exit so the home page loads nothing.
+    const fontLinks: HTMLLinkElement[] = []
+    const fontsRaw = themeConfig['fonts']
+    if (fontsRaw) {
+      fontsRaw.split('|').map(s => s.trim()).filter(Boolean).forEach((href, i) => {
         const link = document.createElement('link')
         link.rel = 'stylesheet'
         link.href = href
-        link.id = `theme-font-${theme}-${i}`
+        link.id = `theme-font-${themeConfig['key'] ?? 'custom'}-${i}`
         document.head.appendChild(link)
-        linkEls.push(link)
+        fontLinks.push(link)
       })
-    } else {
-      el.removeAttribute('data-theme')
     }
 
     return () => {
       el.removeAttribute('data-theme')
-      linkEls.forEach((l) => l.remove())
+      appliedTokens.forEach(token => el.style.removeProperty(`--${token}`))
+      fontLinks.forEach(l => l.remove())
     }
-  }, [isReading, activeWork?.theme])
+  }, [isReading, activeWork?.id, language]) // language reruns so fonts/tokens update on language switch
 
   function selectIndex(index: number) {
     const newId = filteredWorks[index]?.id ?? null
