@@ -26,7 +26,7 @@ export function Spotlight({
       <WorkMeta work={work} language={language} />
 
       {body ? (
-        <MarkdownBody text={body} />
+        <MarkdownBody text={body} language={language} />
       ) : (
         <p className="spotlight-summary">{version.summary}</p>
       )}

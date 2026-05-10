@@ -59,31 +59,37 @@ function App() {
     const theme = isReading && activeWork?.theme ? activeWork.theme : null
     const el = document.documentElement
 
-    // Inject a Google Fonts <link> for themes that ship custom font pairings.
-    // The link is removed when the user leaves, so the home page loads nothing.
-    const THEME_FONTS: Record<string, string> = {
-      'nature-indifferent':
+    // Inject Google Fonts <link> tags for themes that ship custom font pairings.
+    // Each theme can supply separate URLs for English and Telugu fonts.
+    // Links are removed when the user leaves — the home page loads nothing.
+    const THEME_FONTS: Record<string, string[]> = {
+      'nature-indifferent': [
+        // English: Spectral (literary serif) + DM Sans (geometric sans)
         'https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;0,800;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,700;0,9..40,900;1,9..40,400&display=swap',
+        // Telugu: Tiro Telugu (classic literary Telugu serif)
+        'https://fonts.googleapis.com/css2?family=Tiro+Telugu:ital@0;1&display=swap',
+      ],
     }
 
-    let linkEl: HTMLLinkElement | null = null
+    const linkEls: HTMLLinkElement[] = []
     if (theme) {
       el.setAttribute('data-theme', theme)
-      const fontHref = THEME_FONTS[theme]
-      if (fontHref) {
-        linkEl = document.createElement('link')
-        linkEl.rel = 'stylesheet'
-        linkEl.href = fontHref
-        linkEl.id = `theme-font-${theme}`
-        document.head.appendChild(linkEl)
-      }
+      const fontHrefs = THEME_FONTS[theme] ?? []
+      fontHrefs.forEach((href, i) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = href
+        link.id = `theme-font-${theme}-${i}`
+        document.head.appendChild(link)
+        linkEls.push(link)
+      })
     } else {
       el.removeAttribute('data-theme')
     }
 
     return () => {
       el.removeAttribute('data-theme')
-      linkEl?.remove()
+      linkEls.forEach((l) => l.remove())
     }
   }, [isReading, activeWork?.theme])
 
