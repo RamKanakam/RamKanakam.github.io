@@ -143,11 +143,6 @@ function App() {
                   mousewheel={{ forceToAxis: true, sensitivity: 0.7 }}
                   speed={600}
                   onSwiper={(sw) => { swiperRef.current = sw; setSwiperReady(true) }}
-                  onSlideChange={(sw) => {
-                    if (!isReading) return
-                    const newId = filteredWorks[sw.realIndex]?.id ?? null
-                    if (newId) setSearchParams({ work: newId }, { replace: true })
-                  }}
                   className="coverflow-stage"
                   aria-label="Latest works carousel"
                 >
