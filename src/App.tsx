@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Swiper, SwiperSlide } from 'swiper/react'
+import { EffectCards, Keyboard, Mousewheel, Pagination, FreeMode } from 'swiper/modules'
+import type { Swiper as SwiperClass } from 'swiper'
+import 'swiper/css'
+import 'swiper/css/effect-cards'
+import 'swiper/css/navigation'
 import './App.css'
 
 // Eagerly load all markdown content files at build time
@@ -325,50 +331,7 @@ function CoverArt({ work, language, isActive = false }: { work: Work; language: 
   )
 }
 
-function CarouselStack({
-  works: filteredWorks,
-  language,
-  activeIndex,
-  onSelect,
-}: {
-  works: Work[]
-  language: Language
-  activeIndex: number
-  onSelect: (index: number) => void
-}) {
-  const n = filteredWorks.length
 
-  return (
-    <div className="coverflow-stage" aria-label="Latest works carousel">
-      {filteredWorks.map((work, index) => {
-        const version = work.versions[language]
-        if (!version) return null
-
-        // Compute position relative to activeIndex: negative = left, positive = right
-        let pos = (index - activeIndex + n) % n
-        if (pos > Math.floor(n / 2)) pos -= n
-
-        const slotClass =
-          Math.abs(pos) > 3
-            ? 'slot-out'
-            : `slot-${pos < 0 ? 'minus-' + Math.abs(pos) : pos}`
-
-        return (
-          <button
-            aria-current={pos === 0 ? 'true' : undefined}
-            aria-label={`Show ${version.title}`}
-            className={`polaroid-slide ${slotClass}`}
-            key={work.id}
-            onClick={() => onSelect(index)}
-            type="button"
-          >
-            <CoverArt work={work} language={language} isActive={pos === 0} />
-          </button>
-        )
-      })}
-    </div>
-  )
-}
 
 function Spotlight({ work, language, body }: { work: Work; language: Language; body?: string | null }) {
   const version = work.versions[language]
@@ -416,6 +379,8 @@ function App() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('newest')
   const [activeWorkId, setActiveWorkId] = useState<string | null>(null)
   const [isReading, setIsReading] = useState(false)
+  const [swiperReady, setSwiperReady] = useState(false)
+  const swiperRef = useRef<SwiperClass | null>(null)
 
   const filteredWorks = useMemo(() => {
     return works
@@ -424,14 +389,22 @@ function App() {
       .sort(sortByDate(sortDirection))
   }, [activeCategory, language, sortDirection])
 
-  // Keep same work across language/filter changes; fall back to first.
+  // Keep same work across language/filter changes; fall back to middle.
   useEffect(() => {
     setActiveWorkId((prev) => {
       if (prev && filteredWorks.some((w) => w.id === prev)) return prev
       setIsReading(false)
-      return filteredWorks[0]?.id ?? null
+      return filteredWorks[Math.floor(filteredWorks.length / 2)]?.id ?? null
     })
   }, [filteredWorks])
+
+  // Sync Swiper position whenever the active work, list, or swiper initialisation changes.
+  useEffect(() => {
+    const sw = swiperRef.current
+    if (!sw || !swiperReady || filteredWorks.length === 0) return
+    const idx = filteredWorks.findIndex((w) => w.id === activeWorkId)
+    if (idx !== -1 && sw.realIndex !== idx) sw.slideTo(idx, swiperReady ? 900 : 0)
+  }, [activeWorkId, filteredWorks, swiperReady])
 
   const activeIndex = Math.max(0, filteredWorks.findIndex((w) => w.id === activeWorkId))
   const activeWork = filteredWorks[activeIndex] ?? null
@@ -439,15 +412,14 @@ function App() {
   function selectIndex(index: number) {
     const newId = filteredWorks[index]?.id ?? null
     if (newId === activeWorkId && isReading) return // already reading this one
+    swiperRef.current?.slideTo(index)
     setActiveWorkId(newId)
     setIsReading(true)
   }
 
   function moveSlide(step: number) {
-    if (filteredWorks.length === 0) return
-    const next = (activeIndex + step + filteredWorks.length) % filteredWorks.length
-    setActiveWorkId(filteredWorks[next]?.id ?? null)
-    // keep isReading state while browsing in mini mode
+    if (step > 0) swiperRef.current?.slideNext()
+    else swiperRef.current?.slidePrev()
   }
 
   const FilterTray = (
@@ -522,37 +494,66 @@ function App() {
             {activeWork ? (
               <>
                 <button
-                  aria-label="Previous work"
+                  type="button"
                   className="carousel-arrow carousel-arrow--left"
-                  onClick={() => moveSlide(-1)}
-                  type="button"
-                >‹</button>
-
-                <CarouselStack
-                  activeIndex={activeIndex}
-                  language={language}
-                  onSelect={selectIndex}
-                  works={filteredWorks}
-                />
-
+                  aria-label="Previous work"
+                  onClick={(e) => { e.stopPropagation(); moveSlide(-1) }}
+                >
+                  ‹
+                </button>
+                <Swiper
+                  modules={[EffectCards, Keyboard, Mousewheel, Pagination, FreeMode]}
+                  effect="cards"
+                  cardsEffect={{
+                    rotate: false,
+                    perSlideRotate: 2,
+                    slideShadows: false
+                  }}
+                  slidesPerView={1}
+                  centeredSlides={true}
+                  grabCursor={true}
+                  slideToClickedSlide={true}
+                  loop={false}
+                  pagination={{ clickable: true, dynamicBullets: true }}
+                  keyboard={{ enabled: true, onlyInViewport: true }}
+                  mousewheel={{ forceToAxis: true, sensitivity: 0.7 }}
+                  speed={600}
+                  onSwiper={(sw) => { swiperRef.current = sw; setSwiperReady(true) }}
+                  onSlideChange={(sw) => {
+                    const newId = filteredWorks[sw.realIndex]?.id ?? null
+                    if (newId) setActiveWorkId(newId)
+                  }}
+                  className="coverflow-stage"
+                  aria-label="Latest works carousel"
+                >
+                {filteredWorks.map((work, index) => {
+                  const version = work.versions[language]
+                  if (!version) return null
+                  return (
+                    <SwiperSlide key={work.id}>
+                      {({ isActive }) => (
+                        <button
+                          type="button"
+                          className="polaroid-slide"
+                          aria-current={isActive ? 'true' : undefined}
+                          aria-label={`Show ${version.title}`}
+                          onClick={(e) => { e.stopPropagation(); selectIndex(index) }}
+                        >
+                          <CoverArt work={work} language={language} isActive={isActive} />
+                        </button>
+                      )}
+                    </SwiperSlide>
+                  )
+                })}
+              </Swiper>
                 <button
-                  aria-label="Next work"
-                  className="carousel-arrow carousel-arrow--right"
-                  onClick={() => moveSlide(1)}
                   type="button"
-                >›</button>
-
-                <div className="carousel-dots" aria-label="Carousel position">
-                  {filteredWorks.map((work, index) => (
-                    <button
-                      aria-label={`Show ${work.versions[language]?.title ?? work.id}`}
-                      className={index === activeIndex ? 'active' : ''}
-                      key={work.id}
-                      onClick={() => selectIndex(index)}
-                      type="button"
-                    />
-                  ))}
-                </div>
+                  className="carousel-arrow carousel-arrow--right"
+                  aria-label="Next work"
+                  onClick={(e) => { e.stopPropagation(); moveSlide(1) }}
+                >
+                  ›
+                </button>
               </>
             ) : (
               <EmptyState language={language} />
