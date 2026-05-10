@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { EffectCards, Keyboard, Mousewheel, Pagination, FreeMode } from 'swiper/modules'
 import type { Swiper as SwiperClass } from 'swiper'
@@ -7,378 +8,22 @@ import 'swiper/css/effect-cards'
 import 'swiper/css/navigation'
 import './App.css'
 
-// Eagerly load all markdown content files at build time
-const rawFiles = import.meta.glob('./content/**/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>
-
-type Language = 'Telugu' | 'English'
-type Category = 'all' | 'article' | 'story' | 'novel'
-type SortDirection = 'newest' | 'oldest'
-type WorkStatus = 'Read now' | 'Coming soon' | 'Archive pending' | 'On Internet Archive'
-
-type WorkVersion = {
-  title: string
-  summary: string
-  cta: string
-}
-
-type Work = {
-  id: string
-  category: Exclude<Category, 'all'>
-  date: string
-  status: WorkStatus
-  href: string
-  tags: string[]
-  readTime?: string
-  archiveHost?: string
-  covers?: Partial<Record<Language, string>>
-  versions: Partial<Record<Language, WorkVersion>>
-}
-
-const categoryOptions: Array<{
-  value: Category
-  icon: string
-  label: string
-}> = [
-  { value: 'all', icon: '✦', label: 'All' },
-  { value: 'article', icon: '✍', label: 'Articles' },
-  { value: 'story', icon: '☾', label: 'Short stories' },
-  { value: 'novel', icon: '▣', label: 'Novels' },
-]
-
-const categoryNames: Record<Exclude<Category, 'all'>, string> = {
-  article: 'Article',
-  story: 'Short story',
-  novel: 'Novel',
-}
-
-const categoryNamesTelugu: Record<Exclude<Category, 'all'>, string> = {
-  article: 'వ్యాసం',
-  story: 'చిన్న కథ',
-  novel: 'నవల',
-}
-
-const works: Work[] = [
-  {
-    id: 'blue-courtyard',
-    category: 'story',
-    date: '2026-05-05',
-    status: 'Coming soon',
-    href: '#',
-    tags: ['Quiet mystery', 'Standalone'],
-    readTime: '8 min read',
-    versions: {
-      English: {
-        title: 'The Blue Courtyard',
-        summary:
-          'A quiet mystery about an old house, a single evening, and a visitor who recognizes a room they have never entered.',
-        cta: 'Story coming soon',
-      },
-    },
-  },
-  {
-    id: 'nadiki-avatala-ooru',
-    category: 'story',
-    date: '2026-05-03',
-    status: 'Coming soon',
-    href: '#',
-    tags: ['జానపద స్వరం', 'Shared world'],
-    readTime: '10 నిమిషాలు',
-    versions: {
-      Telugu: {
-        title: 'నదికి అవతల ఊరు',
-        summary:
-          'ఒకే నది చుట్టూ తిరిగే కథల శ్రేణి. ప్రతి కథ ఒంటరిగా నిలబడుతుంది, కానీ పేర్లు, ప్రదేశాలు మళ్లీ కనిపిస్తాయి.',
-        cta: 'త్వరలో',
-      },
-    },
-  },
-  {
-    id: 'when-nature-doesnt-care',
-    category: 'article',
-    date: '2026-04-28',
-    status: 'Read now',
-    href: '#',
-    tags: ['Philosophy', 'Rationality'],
-    readTime: '5 min read',
-    covers: {
-      English: '/images/articles/when-nature-doesnt-care/cover.en.jpg',
-      Telugu: '/images/articles/when-nature-doesnt-care/cover.te.jpg',
-    },
-    versions: {
-      English: {
-        title: "When Nature Doesn't Care",
-        summary:
-          'When a volcano erupts or a flood sweeps through, nature offers no apology. An essay on indifferent forces and what rationality asks of us when the universe simply doesn\u2019t care.',
-        cta: 'Read article',
-      },
-      Telugu: {
-        title: 'ప్రకృతికి పట్టని గోల',
-        summary:
-          'అగ్నిపర్వతం పేలినప్పుడు, నదులు పొంగినప్పుడు — ప్రకృతి క్షమాపణ చెప్పదు. విశ్వం పట్టించుకోనప్పుడు మనం ఎలా అర్థం వెతుకుతామో చెప్పే వ్యాసం.',
-        cta: 'వ్యాసం చదవండి',
-      },
-    },
-  },
-  {
-    id: 'between-two-languages',
-    category: 'article',
-    date: '2026-04-28',
-    status: 'Coming soon',
-    href: '#',
-    tags: ['Language', 'Craft'],
-    readTime: '5 min read',
-    versions: {
-      English: {
-        title: 'Between two languages',
-        summary:
-          'Notes on writing across Telugu and English without forcing every thought to wear the same shape.',
-        cta: 'Essay coming soon',
-      },
-    },
-  },
-  {
-    id: 'chadivina-ventane',
-    category: 'article',
-    date: '2026-04-24',
-    status: 'Coming soon',
-    href: '#',
-    tags: ['Reading', 'Notes'],
-    readTime: '6 నిమిషాలు',
-    versions: {
-      Telugu: {
-        title: 'చదివిన వెంటనే మిగిలిన వెలుగు',
-        summary: 'పుస్తకం ముగిసిన తర్వాత మనతో నడిచే వాక్యాలు, జ్ఞాపకాలు, చిన్న చర్చల కోసం.',
-        cta: 'త్వరలో',
-      },
-    },
-  },
-  {
-    id: 'novel-project-one',
-    category: 'novel',
-    date: '2026-04-12',
-    status: 'Archive pending',
-    href: '#',
-    tags: ['PDF / EPUB', 'Cover art'],
-    archiveHost: 'Internet Archive',
-    versions: {
-      English: {
-        title: 'Novel project one',
-        summary:
-          'A future full-length novel entry. Add cover art, a short synopsis, and the Internet Archive link when the upload is ready.',
-        cta: 'Archive link pending',
-      },
-      Telugu: {
-        title: 'మొదటి నవల ప్రాజెక్ట్',
-        summary:
-          'పూర్తి నవల కోసం భవిష్యత్ ప్రవేశం. కవర్ ఆర్ట్, సంక్షిప్త పరిచయం, Internet Archive లింక్ సిద్ధమైన తర్వాత ఇక్కడ జోడించండి.',
-        cta: 'ఆర్కైవ్ లింక్ తరువాత',
-      },
-    },
-  },
-  {
-    id: 'archive-of-rain',
-    category: 'story',
-    date: '2026-04-08',
-    status: 'Coming soon',
-    href: '#',
-    tags: ['Speculative', 'Shared world'],
-    readTime: '9 min read',
-    versions: {
-      English: {
-        title: 'Archive of Rain',
-        summary:
-          'A speculative companion story from a river-bound world, told through records no one remembers writing.',
-        cta: 'Story coming soon',
-      },
-    },
-  },
-  {
-    id: 'collected-stories',
-    category: 'novel',
-    date: '2026-03-30',
-    status: 'Archive pending',
-    href: '#',
-    tags: ['Telugu', 'Collection'],
-    archiveHost: 'Internet Archive',
-    versions: {
-      Telugu: {
-        title: 'కథల సంపుటి',
-        summary:
-          'Internet Archive లో ఉంచే కథా సంపుటాలు, దీర్ఘ రచనలు, లేదా సీరియలైజ్డ్ ఫిక్షన్ కోసం కవర్-ఆధారిత ప్రవేశం.',
-        cta: 'ఆర్కైవ్ లింక్ తరువాత',
-      },
-    },
-  },
-]
-
-function hasLanguage(work: Work, language: Language) {
-  return Boolean(work.versions[language])
-}
-
-function sortByDate(direction: SortDirection) {
-  return (a: Work, b: Work) => {
-    const left = new Date(a.date).getTime()
-    const right = new Date(b.date).getTime()
-
-    return direction === 'newest' ? right - left : left - right
-  }
-}
-
-function formatDate(date: string, language: Language) {
-  return new Intl.DateTimeFormat(language === 'Telugu' ? 'te-IN' : 'en', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(date))
-}
-
-function nextLanguage(language: Language) {
-  return language === 'Telugu' ? 'English' : 'Telugu'
-}
-
-function isLive(work: Work) {
-  return work.href !== '#'
-}
-
-function categoryPath(cat: Exclude<Category, 'all'>): string {
-  if (cat === 'story') return 'stories'
-  if (cat === 'novel') return 'novels'
-  return 'articles'
-}
-
-function getContent(category: Exclude<Category, 'all'>, id: string, language: Language): string | null {
-  const langFile = language === 'Telugu' ? 'te' : 'en'
-  const key = `./content/${categoryPath(category)}/${id}/${langFile}.md`
-  const raw = rawFiles[key]
-  if (!raw) return null
-  // Strip YAML frontmatter
-  const body = raw.replace(/^---[\s\S]*?---\n?/, '').trim()
-  return body || null
-}
-
-function getCategoryLabel(work: Work, language: Language) {
-  return language === 'Telugu' ? categoryNamesTelugu[work.category] : categoryNames[work.category]
-}
-
-function WorkMeta({ work, language }: { work: Work; language: Language }) {
-  return (
-    <div className="meta-row">
-      <span>{getCategoryLabel(work, language)}</span>
-      <span>{language === 'Telugu' ? 'తెలుగు' : 'English'}</span>
-      <span>{formatDate(work.date, language)}</span>
-      {work.readTime ? <span>{work.readTime}</span> : null}
-    </div>
-  )
-}
-
-function EmptyState({ language }: { language: Language }) {
-  return (
-    <div className="empty-state">
-      <p className="eyebrow">No pieces here yet</p>
-      <h2>{language === 'Telugu' ? 'ఈ షెల్ఫ్ ఇంకా ఖాళీగా ఉంది.' : 'This shelf is still empty.'}</h2>
-      <p>
-        {language === 'Telugu'
-          ? 'మరో భాష లేదా మరో విభాగాన్ని ప్రయత్నించండి.'
-          : 'Try another category or switch the language.'}
-      </p>
-    </div>
-  )
-}
-
-function MarkdownBody({ text }: { text: string }) {
-  const blocks = text.split(/\n\n+/).filter((s) => s.trim())
-  return (
-    <div className="article-body">
-      {blocks.map((block, i) => {
-        const t = block.trim()
-        if (t.startsWith('### ')) return <h3 key={i}>{t.slice(4)}</h3>
-        if (t.startsWith('## ')) return <h2 key={i}>{t.slice(3)}</h2>
-        if (t.startsWith('# ')) return <h2 key={i}>{t.slice(2)}</h2>
-        return <p key={i}>{t}</p>
-      })}
-    </div>
-  )
-}
-
-function CoverArt({ work, language, isActive = false }: { work: Work; language: Language; isActive?: boolean }) {
-  const version = work.versions[language]
-  const categoryLabel = getCategoryLabel(work, language)
-  const coverSrc = work.covers?.[language]
-
-  if (!version) return null
-
-  return (
-    <div className={`cover-art cover-art--${work.category} ${isActive ? 'cover-art--active' : ''}`}>
-      {coverSrc ? (
-        <>
-          <img alt={version.title} className="cover-art__img" src={coverSrc} />
-          {isActive && (
-            <span className="cover-badge" aria-hidden="true">{categoryLabel}</span>
-          )}
-        </>
-      ) : (
-        <div className="cover-art__inner">
-          <p className="cover-art__kind">{categoryLabel}</p>
-          <div className="cover-art__mark" aria-hidden="true">
-            {categoryOptions.find((option) => option.value === work.category)?.icon}
-          </div>
-          <h3>{version.title}</h3>
-          <div className="cover-art__rule" aria-hidden="true" />
-          <p>{language === 'Telugu' ? 'నక్షత్రపథం' : 'Nakshatra Patham'}</p>
-        </div>
-      )}
-    </div>
-  )
-}
-
-
-
-function Spotlight({ work, language, body }: { work: Work; language: Language; body?: string | null }) {
-  const version = work.versions[language]
-
-  if (!version) return null
-
-  return (
-    <article className="spotlight-card">
-      <div>
-        <p className="eyebrow">{language === 'Telugu' ? 'తాజా ఎంపిక' : 'Latest selection'}</p>
-        <h1>{version.title}</h1>
-      </div>
-
-      <WorkMeta work={work} language={language} />
-      {body ? (
-        <MarkdownBody text={body} />
-      ) : (
-        <p className="spotlight-summary">{version.summary}</p>
-      )}
-
-      <div className="tag-row" aria-label="Tags">
-        {work.tags.map((tag) => (
-          <span key={tag}>{tag}</span>
-        ))}
-      </div>
-
-      <a
-        aria-disabled={!isLive(work)}
-        className={`read-link ${isLive(work) ? '' : 'read-link--disabled'}`}
-        href={work.href}
-        onClick={(event) => {
-          if (!isLive(work)) event.preventDefault()
-        }}
-      >
-        {version.cta}
-      </a>
-    </article>
-  )
-}
-
+import type { Category, Language, SortDirection } from './types'
+import { works } from './data/works'
+import { hasLanguage, sortByDate, nextLanguage, getContent } from './utils/content'
+import { FilterTray } from './components/FilterTray'
+import { CoverArt } from './components/CoverArt'
+import { EmptyState } from './components/EmptyState'
+import { Spotlight } from './components/Spotlight'
 
 function App() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeWorkId = searchParams.get('work')
+  const isReading = activeWorkId !== null
+
   const [language, setLanguage] = useState<Language>('English')
   const [activeCategory, setActiveCategory] = useState<Category>('all')
   const [sortDirection, setSortDirection] = useState<SortDirection>('newest')
-  const [activeWorkId, setActiveWorkId] = useState<string | null>(null)
-  const [isReading, setIsReading] = useState(false)
   const [swiperReady, setSwiperReady] = useState(false)
   const swiperRef = useRef<SwiperClass | null>(null)
 
@@ -389,14 +34,14 @@ function App() {
       .sort(sortByDate(sortDirection))
   }, [activeCategory, language, sortDirection])
 
-  // Keep same work across language/filter changes; fall back to middle.
+  // When reading and the active work drops out of the filtered list, fall back to the middle work.
   useEffect(() => {
-    setActiveWorkId((prev) => {
-      if (prev && filteredWorks.some((w) => w.id === prev)) return prev
-      setIsReading(false)
-      return filteredWorks[Math.floor(filteredWorks.length / 2)]?.id ?? null
-    })
-  }, [filteredWorks])
+    if (!isReading) return
+    if (filteredWorks.some((w) => w.id === activeWorkId)) return
+    const fallback = filteredWorks[Math.floor(filteredWorks.length / 2)]?.id ?? null
+    if (fallback) setSearchParams({ work: fallback }, { replace: true })
+    else setSearchParams({}, { replace: true })
+  }, [filteredWorks]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync Swiper position whenever the active work, list, or swiper initialisation changes.
   useEffect(() => {
@@ -411,10 +56,9 @@ function App() {
 
   function selectIndex(index: number) {
     const newId = filteredWorks[index]?.id ?? null
-    if (newId === activeWorkId && isReading) return // already reading this one
+    if (!newId || (newId === activeWorkId && isReading)) return
     swiperRef.current?.slideTo(index)
-    setActiveWorkId(newId)
-    setIsReading(true)
+    setSearchParams({ work: newId })
   }
 
   function moveSlide(step: number) {
@@ -422,32 +66,7 @@ function App() {
     else swiperRef.current?.slidePrev()
   }
 
-  const FilterTray = (
-    <div className="filter-tray" aria-label="Filter and sort works">
-      {categoryOptions.map((option) => (
-        <button
-          aria-pressed={activeCategory === option.value}
-          className={`filter-button ${activeCategory === option.value ? 'active' : ''}`}
-          key={option.value}
-          onClick={() => setActiveCategory(option.value)}
-          type="button"
-        >
-          <span aria-hidden="true" className="filter-button__icon">{option.icon}</span>
-          <span>{option.label}</span>
-        </button>
-      ))}
-      <button
-        className="filter-button filter-button--sort"
-        onClick={() => setSortDirection((d) => (d === 'newest' ? 'oldest' : 'newest'))}
-        type="button"
-      >
-        <span aria-hidden="true" className="filter-button__icon">
-          {sortDirection === 'newest' ? '↓' : '↑'}
-        </span>
-        <span>{sortDirection === 'newest' ? 'Newest' : 'Oldest'}</span>
-      </button>
-    </div>
-  )
+
 
   return (
     <div className="site-shell">
@@ -474,7 +93,12 @@ function App() {
           aria-labelledby="carousel-title"
         >
           {/* Filter bar: above carousel always */}
-          {FilterTray}
+          <FilterTray
+            activeCategory={activeCategory}
+            sortDirection={sortDirection}
+            onCategoryChange={setActiveCategory}
+            onSortToggle={() => setSortDirection((d) => (d === 'newest' ? 'oldest' : 'newest'))}
+          />
 
           {!isReading && (
             <div className="carousel-title-row">
@@ -520,8 +144,9 @@ function App() {
                   speed={600}
                   onSwiper={(sw) => { swiperRef.current = sw; setSwiperReady(true) }}
                   onSlideChange={(sw) => {
+                    if (!isReading) return
                     const newId = filteredWorks[sw.realIndex]?.id ?? null
-                    if (newId) setActiveWorkId(newId)
+                    if (newId) setSearchParams({ work: newId }, { replace: true })
                   }}
                   className="coverflow-stage"
                   aria-label="Latest works carousel"
@@ -571,7 +196,7 @@ function App() {
             <button
               className="content-close"
               aria-label="Back to shelf"
-              onClick={() => setIsReading(false)}
+              onClick={() => setSearchParams({})}
               type="button"
             >
               ← {language === 'Telugu' ? 'తిరిగి' : 'Back to shelf'}
