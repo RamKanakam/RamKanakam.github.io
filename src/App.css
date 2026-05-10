@@ -900,3 +900,18 @@ html[data-theme='nature-indifferent'] .tag-row span {
 html[data-theme='nature-indifferent'] .carousel-arrow {
   border-color: rgba(190, 215, 240, 0.28);
 }
+
+/* Topbar: subtle anchor line and a tinted brand feel */
+html[data-theme='nature-indifferent'] .topbar {
+  border-bottom: 1px solid rgba(38, 58, 100, 0.10);
+}
+
+/* "Read article" CTA button: picks up the cool slate accent */
+html[data-theme='nature-indifferent'] .read-link:not(.read-link--disabled) {
+  background: #2d3f55;
+}
+
+/* Spotlight eyebrow label */
+html[data-theme='nature-indifferent'] .spotlight-card .eyebrow {
+  color: var(--muted);
+}

@@ -1,3 +1,11 @@
+/* Register color tokens as typed properties so they can be transitioned globally. */
+@property --paper    { syntax: '<color>'; inherits: true; initial-value: #fbf6eb; }
+@property --ink      { syntax: '<color>'; inherits: true; initial-value: #241a16; }
+@property --soft-ink { syntax: '<color>'; inherits: true; initial-value: #5f514a; }
+@property --muted    { syntax: '<color>'; inherits: true; initial-value: #7c6f67; }
+@property --rust     { syntax: '<color>'; inherits: true; initial-value: #9d4630; }
+@property --sage     { syntax: '<color>'; inherits: true; initial-value: #e8eee2; }
+
 :root {
   --paper: #fbf6eb;
   --ink: #241a16;
@@ -27,6 +35,15 @@
 
 html {
   scroll-behavior: smooth;
+  /* Transition the registered color tokens — every element using these variables
+     will smoothly shift palette when a data-theme attribute is added/removed. */
+  transition:
+    --paper 640ms ease,
+    --ink 640ms ease,
+    --soft-ink 640ms ease,
+    --muted 640ms ease,
+    --rust 640ms ease,
+    --sage 640ms ease;
 }
 
 body {
@@ -37,7 +54,6 @@ body {
     linear-gradient(90deg, rgba(64, 49, 38, 0.025) 1px, transparent 1px),
     var(--paper);
   background-size: 48px 48px;
-  transition: background-color 600ms ease;
 }
 
 button,
