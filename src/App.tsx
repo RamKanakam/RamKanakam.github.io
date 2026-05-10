@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 
+// Eagerly load all markdown content files at build time
+const rawFiles = import.meta.glob('./content/**/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>
+
 type Language = 'Telugu' | 'English'
 type Category = 'all' | 'article' | 'story' | 'novel'
 type SortDirection = 'newest' | 'oldest'
@@ -231,6 +234,22 @@ function isLive(work: Work) {
   return work.href !== '#'
 }
 
+function categoryPath(cat: Exclude<Category, 'all'>): string {
+  if (cat === 'story') return 'stories'
+  if (cat === 'novel') return 'novels'
+  return 'articles'
+}
+
+function getContent(category: Exclude<Category, 'all'>, id: string, language: Language): string | null {
+  const langFile = language === 'Telugu' ? 'te' : 'en'
+  const key = `./content/${categoryPath(category)}/${id}/${langFile}.md`
+  const raw = rawFiles[key]
+  if (!raw) return null
+  // Strip YAML frontmatter
+  const body = raw.replace(/^---[\s\S]*?---\n?/, '').trim()
+  return body || null
+}
+
 function getCategoryLabel(work: Work, language: Language) {
   return language === 'Telugu' ? categoryNamesTelugu[work.category] : categoryNames[work.category]
 }
@@ -256,6 +275,21 @@ function EmptyState({ language }: { language: Language }) {
           ? 'మరో భాష లేదా మరో విభాగాన్ని ప్రయత్నించండి.'
           : 'Try another category or switch the language.'}
       </p>
+    </div>
+  )
+}
+
+function MarkdownBody({ text }: { text: string }) {
+  const blocks = text.split(/\n\n+/).filter((s) => s.trim())
+  return (
+    <div className="article-body">
+      {blocks.map((block, i) => {
+        const t = block.trim()
+        if (t.startsWith('### ')) return <h3 key={i}>{t.slice(4)}</h3>
+        if (t.startsWith('## ')) return <h2 key={i}>{t.slice(3)}</h2>
+        if (t.startsWith('# ')) return <h2 key={i}>{t.slice(2)}</h2>
+        return <p key={i}>{t}</p>
+      })}
     </div>
   )
 }
@@ -336,7 +370,7 @@ function CarouselStack({
   )
 }
 
-function Spotlight({ work, language }: { work: Work; language: Language }) {
+function Spotlight({ work, language, body }: { work: Work; language: Language; body?: string | null }) {
   const version = work.versions[language]
 
   if (!version) return null
@@ -349,7 +383,11 @@ function Spotlight({ work, language }: { work: Work; language: Language }) {
       </div>
 
       <WorkMeta work={work} language={language} />
-      <p className="spotlight-summary">{version.summary}</p>
+      {body ? (
+        <MarkdownBody text={body} />
+      ) : (
+        <p className="spotlight-summary">{version.summary}</p>
+      )}
 
       <div className="tag-row" aria-label="Tags">
         {work.tags.map((tag) => (
@@ -377,6 +415,7 @@ function App() {
   const [activeCategory, setActiveCategory] = useState<Category>('all')
   const [sortDirection, setSortDirection] = useState<SortDirection>('newest')
   const [activeWorkId, setActiveWorkId] = useState<string | null>(null)
+  const [isReading, setIsReading] = useState(false)
 
   const filteredWorks = useMemo(() => {
     return works
@@ -385,11 +424,11 @@ function App() {
       .sort(sortByDate(sortDirection))
   }, [activeCategory, language, sortDirection])
 
-  // When the filtered list changes, keep the same work if it's still present
-  // (handles language switch: same work, different cover). Fall back to first.
+  // Keep same work across language/filter changes; fall back to first.
   useEffect(() => {
     setActiveWorkId((prev) => {
       if (prev && filteredWorks.some((w) => w.id === prev)) return prev
+      setIsReading(false)
       return filteredWorks[0]?.id ?? null
     })
   }, [filteredWorks])
@@ -398,13 +437,45 @@ function App() {
   const activeWork = filteredWorks[activeIndex] ?? null
 
   function selectIndex(index: number) {
-    setActiveWorkId(filteredWorks[index]?.id ?? null)
+    const newId = filteredWorks[index]?.id ?? null
+    if (newId === activeWorkId && isReading) return // already reading this one
+    setActiveWorkId(newId)
+    setIsReading(true)
   }
 
   function moveSlide(step: number) {
     if (filteredWorks.length === 0) return
-    selectIndex((activeIndex + step + filteredWorks.length) % filteredWorks.length)
+    const next = (activeIndex + step + filteredWorks.length) % filteredWorks.length
+    setActiveWorkId(filteredWorks[next]?.id ?? null)
+    // keep isReading state while browsing in mini mode
   }
+
+  const FilterTray = (
+    <div className="filter-tray" aria-label="Filter and sort works">
+      {categoryOptions.map((option) => (
+        <button
+          aria-pressed={activeCategory === option.value}
+          className={`filter-button ${activeCategory === option.value ? 'active' : ''}`}
+          key={option.value}
+          onClick={() => setActiveCategory(option.value)}
+          type="button"
+        >
+          <span aria-hidden="true" className="filter-button__icon">{option.icon}</span>
+          <span>{option.label}</span>
+        </button>
+      ))}
+      <button
+        className="filter-button filter-button--sort"
+        onClick={() => setSortDirection((d) => (d === 'newest' ? 'oldest' : 'newest'))}
+        type="button"
+      >
+        <span aria-hidden="true" className="filter-button__icon">
+          {sortDirection === 'newest' ? '↓' : '↑'}
+        </span>
+        <span>{sortDirection === 'newest' ? 'Newest' : 'Oldest'}</span>
+      </button>
+    </div>
+  )
 
   return (
     <div className="site-shell">
@@ -413,7 +484,6 @@ function App() {
           <span className="brand__telugu">నక్షత్రపథం</span>
           <span className="brand__english">Nakshatra Patham</span>
         </a>
-
         <button
           aria-label={`Switch to ${nextLanguage(language)}`}
           className="round-button language-button"
@@ -426,18 +496,27 @@ function App() {
       </header>
 
       <main>
-        <section className="carousel-section" aria-labelledby="carousel-title">
-          <div className="carousel-title-row">
-            <div>
-              <p className="eyebrow">{language === 'Telugu' ? 'కొత్తగా షెల్ఫ్‌లో' : 'New on the shelf'}</p>
-              <h2 id="carousel-title">{language === 'Telugu' ? 'తాజా రచనలు' : 'Latest works'}</h2>
+        {/* ── Carousel shelf ── always in DOM; shrinks to top strip when reading */}
+        <section
+          className={`carousel-section${isReading ? ' carousel-section--mini' : ''}`}
+          aria-labelledby="carousel-title"
+        >
+          {/* Filter bar: above carousel always */}
+          {FilterTray}
+
+          {!isReading && (
+            <div className="carousel-title-row">
+              <div>
+                <p className="eyebrow">{language === 'Telugu' ? 'కొత్తగా షెల్ఫ్‌లో' : 'New on the shelf'}</p>
+                <h2 id="carousel-title">{language === 'Telugu' ? 'తాజా రచనలు' : 'Latest works'}</h2>
+              </div>
+              <p>
+                {language === 'Telugu'
+                  ? 'కథలు, నవలలు, వ్యాసాలు — అందుబాటులో ఉన్న తాజా రచనలు.'
+                  : 'Stories, novels, and articles arranged like a small rotating shelf.'}
+              </p>
             </div>
-            <p>
-              {language === 'Telugu'
-                ? 'కథలు, నవలలు, వ్యాసాలు — అందుబాటులో ఉన్న తాజా రచనలు.'
-                : 'Stories, novels, and articles arranged like a small rotating shelf.'}
-            </p>
-          </div>
+          )}
 
           <div className="carousel-shell">
             {activeWork ? (
@@ -447,9 +526,7 @@ function App() {
                   className="carousel-arrow carousel-arrow--left"
                   onClick={() => moveSlide(-1)}
                   type="button"
-                >
-                  ‹
-                </button>
+                >‹</button>
 
                 <CarouselStack
                   activeIndex={activeIndex}
@@ -463,9 +540,7 @@ function App() {
                   className="carousel-arrow carousel-arrow--right"
                   onClick={() => moveSlide(1)}
                   type="button"
-                >
-                  ›
-                </button>
+                >›</button>
 
                 <div className="carousel-dots" aria-label="Carousel position">
                   {filteredWorks.map((work, index) => (
@@ -478,46 +553,31 @@ function App() {
                     />
                   ))}
                 </div>
-
-                {/* <Spotlight key={activeWork.id} work={activeWork} language={language} /> */}
               </>
             ) : (
               <EmptyState language={language} />
             )}
           </div>
-
-          <div className="filter-tray" aria-label="Filter and sort works">
-            {categoryOptions.map((option) => (
-              <button
-                aria-pressed={activeCategory === option.value}
-                className={`filter-button ${activeCategory === option.value ? 'active' : ''}`}
-                key={option.value}
-                onClick={() => setActiveCategory(option.value)}
-                type="button"
-              >
-                <span aria-hidden="true" className="filter-button__icon">
-                  {option.icon}
-                </span>
-                <span>{option.label}</span>
-              </button>
-            ))}
-
-            <button
-              className="filter-button filter-button--sort"
-              onClick={() =>
-                setSortDirection((current) => (current === 'newest' ? 'oldest' : 'newest'))
-              }
-              type="button"
-            >
-              <span aria-hidden="true" className="filter-button__icon">
-                {sortDirection === 'newest' ? '↓' : '↑'}
-              </span>
-              <span>{sortDirection === 'newest' ? 'Newest' : 'Oldest'}</span>
-            </button>
-          </div>
         </section>
 
-
+        {/* ── Content panel ── slides in when reading */}
+        {isReading && activeWork && (
+          <section
+            className="content-section"
+            key={activeWork.id}
+            aria-label="Selected work"
+          >
+            <button
+              className="content-close"
+              aria-label="Back to shelf"
+              onClick={() => setIsReading(false)}
+              type="button"
+            >
+              ← {language === 'Telugu' ? 'తిరిగి' : 'Back to shelf'}
+            </button>
+            <Spotlight work={activeWork} language={language} body={getContent(activeWork.category, activeWork.id, language)} />
+          </section>
+        )}
       </main>
 
       <footer className="footer">
