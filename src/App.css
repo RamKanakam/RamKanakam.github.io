@@ -822,7 +822,8 @@ h3 {
 
 /* ── "When Nature Doesn't Care"
    Mood: cold, elemental, indifferent — storm-gray sky,
-   volcanic slate, floodwater blue. Stark and clear-eyed. ── */
+   volcanic slate, floodwater blue. Stark and clear-eyed.
+   Fonts: Spectral (literary serif, slightly austere) + DM Sans (clean, geometric). ── */
 html[data-theme='nature-indifferent'] {
   --paper: #eceff4;
   --ink: #1b1e28;
@@ -831,6 +832,8 @@ html[data-theme='nature-indifferent'] {
   --line: rgba(40, 52, 80, 0.12);
   --rust: #3b6f8a;
   --sage: #d5dde8;
+  --serif: 'Spectral', Georgia, 'Noto Serif Telugu', 'Noto Serif', serif;
+  --sans: 'DM Sans', Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
 html[data-theme='nature-indifferent'] body {
@@ -914,4 +917,27 @@ html[data-theme='nature-indifferent'] .read-link:not(.read-link--disabled) {
 /* Spotlight eyebrow label */
 html[data-theme='nature-indifferent'] .spotlight-card .eyebrow {
   color: var(--muted);
+}
+
+/* Spectral benefits from slightly looser tracking at display size */
+html[data-theme='nature-indifferent'] h1,
+html[data-theme='nature-indifferent'] h2,
+html[data-theme='nature-indifferent'] h3 {
+  letter-spacing: -0.02em;
+  font-weight: 800;
+}
+
+/* Article body prose: Spectral reads well at a touch more line-height */
+html[data-theme='nature-indifferent'] .article-body p {
+  font-family: var(--serif);
+  font-size: clamp(1rem, 1.6vw, 1.1rem);
+  line-height: 1.9;
+  letter-spacing: 0.01em;
+}
+
+/* Section headings inside the article */
+html[data-theme='nature-indifferent'] .article-body h2,
+html[data-theme='nature-indifferent'] .article-body h3 {
+  font-style: italic;
+  font-weight: 600;
 }

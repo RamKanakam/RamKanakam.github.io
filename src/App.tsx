@@ -58,12 +58,33 @@ function App() {
   useEffect(() => {
     const theme = isReading && activeWork?.theme ? activeWork.theme : null
     const el = document.documentElement
+
+    // Inject a Google Fonts <link> for themes that ship custom font pairings.
+    // The link is removed when the user leaves, so the home page loads nothing.
+    const THEME_FONTS: Record<string, string> = {
+      'nature-indifferent':
+        'https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;0,800;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,700;0,9..40,900;1,9..40,400&display=swap',
+    }
+
+    let linkEl: HTMLLinkElement | null = null
     if (theme) {
       el.setAttribute('data-theme', theme)
+      const fontHref = THEME_FONTS[theme]
+      if (fontHref) {
+        linkEl = document.createElement('link')
+        linkEl.rel = 'stylesheet'
+        linkEl.href = fontHref
+        linkEl.id = `theme-font-${theme}`
+        document.head.appendChild(linkEl)
+      }
     } else {
       el.removeAttribute('data-theme')
     }
-    return () => el.removeAttribute('data-theme')
+
+    return () => {
+      el.removeAttribute('data-theme')
+      linkEl?.remove()
+    }
   }, [isReading, activeWork?.theme])
 
   function selectIndex(index: number) {
