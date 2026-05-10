@@ -54,6 +54,18 @@ function App() {
   const activeIndex = Math.max(0, filteredWorks.findIndex((w) => w.id === activeWorkId))
   const activeWork = filteredWorks[activeIndex] ?? null
 
+  // Apply per-work page theme while reading; revert to default on close.
+  useEffect(() => {
+    const theme = isReading && activeWork?.theme ? activeWork.theme : null
+    const el = document.documentElement
+    if (theme) {
+      el.setAttribute('data-theme', theme)
+    } else {
+      el.removeAttribute('data-theme')
+    }
+    return () => el.removeAttribute('data-theme')
+  }, [isReading, activeWork?.theme])
+
   function selectIndex(index: number) {
     const newId = filteredWorks[index]?.id ?? null
     if (!newId || (newId === activeWorkId && isReading)) return

@@ -37,6 +37,7 @@ body {
     linear-gradient(90deg, rgba(64, 49, 38, 0.025) 1px, transparent 1px),
     var(--paper);
   background-size: 48px 48px;
+  transition: background-color 600ms ease;
 }
 
 button,

@@ -66,6 +66,7 @@ export const works: Work[] = [
     href: '#',
     tags: ['Philosophy', 'Rationality'],
     readTime: '5 min read',
+    theme: 'nature-indifferent',
     covers: {
       English: '/images/articles/when-nature-doesnt-care/cover.en.jpg',
       Telugu: '/images/articles/when-nature-doesnt-care/cover.te.jpg',

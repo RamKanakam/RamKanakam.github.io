@@ -20,4 +20,5 @@ export type Work = {
   archiveHost?: string
   covers?: Partial<Record<Language, string>>
   versions: Partial<Record<Language, WorkVersion>>
+  theme?: string
 }
