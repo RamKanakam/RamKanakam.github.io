@@ -27,6 +27,7 @@ export const works: Work[] = [
   {
     id: 'blue-courtyard',
     category: 'story',
+    template: 'story',
     date: '2026-05-05',
     status: 'Coming soon',
     href: '#',
@@ -44,6 +45,7 @@ export const works: Work[] = [
   {
     id: 'nadiki-avatala-ooru',
     category: 'story',
+    template: 'story',
     date: '2026-05-03',
     status: 'Coming soon',
     href: '#',
@@ -61,14 +63,16 @@ export const works: Work[] = [
   {
     id: 'when-nature-doesnt-care',
     category: 'article',
+    template: 'essay',
+    pullQuote: 'Good and bad begin not in the event itself, but in the being to whom the event matters.',
     date: '2026-04-28',
     status: 'Read now',
     href: '#',
     tags: ['Philosophy', 'Rationality'],
     readTime: '5 min read',
     covers: {
-      English: '/images/articles/when-nature-doesnt-care/cover.en.jpg',
-      Telugu: '/images/articles/when-nature-doesnt-care/cover.te.jpg',
+      English: '/images/articles/when-nature-doesnt-care/cover.en.webp',
+      Telugu: '/images/articles/when-nature-doesnt-care/cover.en.webp',
     },
     versions: {
       English: {
@@ -88,6 +92,7 @@ export const works: Work[] = [
   {
     id: 'between-two-languages',
     category: 'article',
+    template: 'essay',
     date: '2026-04-28',
     status: 'Coming soon',
     href: '#',
@@ -105,6 +110,7 @@ export const works: Work[] = [
   {
     id: 'chadivina-ventane',
     category: 'article',
+    template: 'essay',
     date: '2026-04-24',
     status: 'Coming soon',
     href: '#',
@@ -121,6 +127,7 @@ export const works: Work[] = [
   {
     id: 'novel-project-one',
     category: 'novel',
+    template: 'novel',
     date: '2026-04-12',
     status: 'Archive pending',
     href: '#',
@@ -144,6 +151,7 @@ export const works: Work[] = [
   {
     id: 'archive-of-rain',
     category: 'story',
+    template: 'story',
     date: '2026-04-08',
     status: 'Coming soon',
     href: '#',
@@ -161,6 +169,7 @@ export const works: Work[] = [
   {
     id: 'collected-stories',
     category: 'novel',
+    template: 'novel',
     date: '2026-03-30',
     status: 'Archive pending',
     href: '#',

@@ -1,5 +1,6 @@
 import type { Language, Work } from '../types'
-import { isLive } from '../utils/content'
+import { isLive, getCategoryLabel } from '../utils/content'
+import { categoryOptions } from '../data/works'
 import { WorkMeta } from './WorkMeta'
 import { MarkdownBody } from './MarkdownBody'
 
@@ -7,46 +8,115 @@ export function Spotlight({
   work,
   language,
   body,
+  prevWork,
+  nextWork,
+  onSelect,
 }: {
   work: Work
   language: Language
   body?: string | null
+  prevWork?: Work | null
+  nextWork?: Work | null
+  onSelect?: (id: string) => void
 }) {
   const version = work.versions[language]
-
   if (!version) return null
 
+  const template =
+    work.template ??
+    (work.category === 'article' ? 'essay' : work.category === 'story' ? 'story' : 'novel')
+  const coverSrc = work.covers?.[language]
+  const categoryLabel = getCategoryLabel(work, language)
+  const icon = categoryOptions.find((o) => o.value === work.category)?.icon
+
+  const hasPrev = prevWork && prevWork.versions[language]
+  const hasNext = nextWork && nextWork.versions[language]
+
   return (
-    <article className="spotlight-card">
-      <div>
-        <p className="eyebrow">{language === 'Telugu' ? 'తాజా ఎంపిక' : 'Latest selection'}</p>
-        <h1>{version.title}</h1>
+    <article className={`reading-article reading-article--${template}`}>
+
+      {/* ── Hero ─────────────────────────────────────────── */}
+      <div className={`reading-hero reading-hero--generated cover-art--${work.category}`}>
+        <div className="reading-hero__titles">
+          <p className="eyebrow">{categoryLabel}</p>
+          <h1>{version.title}</h1>
+          <span className="reading-hero__ornament" aria-hidden="true">
+            <img src="/images/star.png" alt="" />
+          </span>
+        </div>
       </div>
 
-      <WorkMeta work={work} language={language} />
+      {/* ── Body ─────────────────────────────────────────── */}
+      <div className="reading-body-area">
+        <div className="reading-body-shell">
 
-      {body ? (
-        <MarkdownBody text={body} language={language} />
-      ) : (
-        <p className="spotlight-summary">{version.summary}</p>
-      )}
+        <WorkMeta work={work} language={language} />
 
-      <div className="tag-row" aria-label="Tags">
-        {work.tags.map((tag) => (
-          <span key={tag}>{tag}</span>
-        ))}
+        {work.pullQuote && (
+          <blockquote className="reading-pull-quote">
+            <p>&#8220;{work.pullQuote}&#8221;</p>
+          </blockquote>
+        )}
+
+        {body ? (
+          <MarkdownBody text={body} language={language} />
+        ) : (
+          <p className="reading-summary">{version.summary}</p>
+        )}
+
+        <div className="reading-end-row">
+          <div className="tag-row" aria-label="Tags">
+            {work.tags.map((tag) => (
+              <span key={tag}>{tag}</span>
+            ))}
+          </div>
+          <a
+            aria-disabled={!isLive(work)}
+            className={`read-link ${isLive(work) ? '' : 'read-link--disabled'}`}
+            href={work.href}
+            onClick={(e) => { if (!isLive(work)) e.preventDefault() }}
+          >
+            {version.cta}{isLive(work) ? ' →' : ''}
+          </a>
+        </div>
+
+        {/* ── Prev / Next navigation ── */}
+        {(hasPrev || hasNext) && onSelect && (
+          <nav className="reading-nav" aria-label="Navigate between works">
+            {hasPrev ? (
+              <button
+                className="reading-nav__item reading-nav__item--prev"
+                onClick={() => onSelect(prevWork!.id)}
+                type="button"
+              >
+                <span className="reading-nav__direction">
+                  ← {language === 'Telugu' ? 'వెనక్కి' : 'Previous'}
+                </span>
+                <span className="reading-nav__title">
+                  {prevWork!.versions[language]?.title}
+                </span>
+              </button>
+            ) : (
+              <div />
+            )}
+            {hasNext && (
+              <button
+                className="reading-nav__item reading-nav__item--next"
+                onClick={() => onSelect(nextWork!.id)}
+                type="button"
+              >
+                <span className="reading-nav__direction">
+                  {language === 'Telugu' ? 'తర్వాత' : 'Next'} →
+                </span>
+                <span className="reading-nav__title">
+                  {nextWork!.versions[language]?.title}
+                </span>
+              </button>
+            )}
+          </nav>
+        )}
       </div>
-
-      <a
-        aria-disabled={!isLive(work)}
-        className={`read-link ${isLive(work) ? '' : 'read-link--disabled'}`}
-        href={work.href}
-        onClick={(event) => {
-          if (!isLive(work)) event.preventDefault()
-        }}
-      >
-        {version.cta}
-      </a>
+      </div>
     </article>
   )
 }
