@@ -419,6 +419,15 @@ function App() {
         <div className="footer__brand">
           <span className="brand__telugu footer__site-name">నక్షత్రపథం</span>
           <p>Anonymous for now. Built for Telugu, English,<br />and the worlds between.</p>
+          <p className="footer__attribution">
+            <a
+              href="https://www.vecteezy.com/free-vector/star"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Star Vectors by Vecteezy
+            </a>
+          </p>
         </div>
         <a
           href={isReading ? undefined : '#top'}
@@ -435,4 +444,3 @@ function App() {
 }
 
 export default App
-

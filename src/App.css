@@ -1046,6 +1046,21 @@ h3 {
   color: var(--muted);
 }
 
+.footer__attribution {
+  font-size: 0.78rem;
+}
+
+.footer__attribution a {
+  color: var(--soft-ink);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.footer__attribution a:hover {
+  color: var(--ink);
+}
+
 .footer__top-link {
   display: inline-flex;
   min-height: 44px;
