@@ -148,18 +148,45 @@ function App() {
   return (
     <div className="site-shell">
 
-      {/* ── Header — two variants: site nav vs. reading topbar ── */}
-      {isReading ? (
-        <header className="reading-topbar">
-          <button
-            className="reading-topbar__back"
-            onClick={() => setSearchParams({})}
-            type="button"
-            aria-label="Back to shelf"
-          >
-            ← {language === 'Telugu' ? 'షెల్ఫ్‌కు' : 'Back to shelf'}
-          </button>
-          <div className="reading-progress-bar" aria-hidden="true" />
+      {/* ── Header ── */}
+      <nav className="site-nav" id="top">
+        <a
+          className="site-nav__brand"
+          href={isReading ? undefined : '#top'}
+          aria-label="Nakshatra Patham home"
+          onClick={() => { setActiveCategory('all'); if (isReading) setSearchParams({}) }}
+          style={{ cursor: 'pointer' }}
+        >
+          {language === 'Telugu' ? (
+            <span className="site-nav__brand-te">నక్షత్రపథం</span>
+          ) : (
+            <span className="site-nav__brand-en">Nakshatra Patham</span>
+          )}
+        </a>
+        <ul className="site-nav__links" role="list">
+          <li>
+            <button
+              type="button"
+              className={`site-nav__link${!isReading && activeCategory === 'all' ? ' site-nav__link--active' : ''}`}
+              onClick={() => { setActiveCategory('all'); if (isReading) setSearchParams({}) }}
+            >
+              HOME
+            </button>
+          </li>
+          {PANELS.map(({ cat, labelEn, labelTe }) => (
+            <li key={cat}>
+              <button
+                type="button"
+                className={`site-nav__link${(isReading ? activeWork?.category === cat : activeCategory === cat) ? ' site-nav__link--active' : ''}`}
+                onClick={() => { setActiveCategory(cat); if (isReading) setSearchParams({}) }}
+              >
+                {language === 'Telugu' ? labelTe.toUpperCase() : labelEn.toUpperCase()}
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="site-nav__actions">
+          {isReading && <div className="reading-progress-bar" aria-hidden="true" />}
           <button
             aria-label={`Switch to ${nextLanguage(language)}`}
             className="round-button"
@@ -169,56 +196,8 @@ function App() {
           >
             {language === 'Telugu' ? 'తే' : 'En'}
           </button>
-        </header>
-      ) : (
-        <nav className="site-nav" id="top">
-          <a
-            className="site-nav__brand"
-            href="#top"
-            aria-label="Nakshatra Patham home"
-            onClick={() => setActiveCategory('all')}
-          >
-            {language === 'Telugu' ? (
-              <span className="site-nav__brand-te">నక్షత్రపథం</span>
-            ) : (
-              <span className="site-nav__brand-en">Nakshatra Patham</span>
-            )}
-          </a>
-          <ul className="site-nav__links" role="list">
-            <li>
-              <button
-                type="button"
-                className={`site-nav__link${activeCategory === 'all' ? ' site-nav__link--active' : ''}`}
-                onClick={() => setActiveCategory('all')}
-              >
-                HOME
-              </button>
-            </li>
-            {PANELS.map(({ cat, labelEn, labelTe }) => (
-              <li key={cat}>
-                <button
-                  type="button"
-                  className={`site-nav__link${activeCategory === cat ? ' site-nav__link--active' : ''}`}
-                  onClick={() => setActiveCategory(cat)}
-                >
-                  {language === 'Telugu' ? labelTe.toUpperCase() : labelEn.toUpperCase()}
-                </button>
-              </li>
-            ))}
-          </ul>
-          <div className="site-nav__actions">
-            <button
-              aria-label={`Switch to ${nextLanguage(language)}`}
-              className="round-button"
-              onClick={() => setLanguage(nextLanguage(language))}
-              title={`Switch to ${nextLanguage(language)}`}
-              type="button"
-            >
-              {language === 'Telugu' ? 'తే' : 'En'}
-            </button>
-          </div>
-        </nav>
-      )}
+        </div>
+      </nav>
 
       <main>
         {/* ── Home view: hero + category panels ── */}

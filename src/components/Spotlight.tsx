@@ -43,20 +43,18 @@ export function Spotlight({
           <span className="reading-hero__ornament" aria-hidden="true">
             <img src="/images/star.png" alt="" />
           </span>
+          <WorkMeta work={work} language={language} />
+          {work.pullQuote && (
+            <blockquote className="reading-pull-quote reading-pull-quote--hero">
+              <p>&#8220;{work.pullQuote}&#8221;</p>
+            </blockquote>
+          )}
         </div>
       </div>
 
       {/* ── Body ─────────────────────────────────────────── */}
       <div className="reading-body-area">
         <div className="reading-body-shell">
-
-        <WorkMeta work={work} language={language} />
-
-        {work.pullQuote && (
-          <blockquote className="reading-pull-quote">
-            <p>&#8220;{work.pullQuote}&#8221;</p>
-          </blockquote>
-        )}
 
         {body ? (
           <MarkdownBody text={body} language={language} />
