@@ -25,7 +25,7 @@ const PANELS = [
   {
     cat: 'story' as Exclude<Category, 'all'>,
     labelEn: 'Stories',
-    labelTe: 'చిన్న కథలు',
+    labelTe: 'కథలు',
     descEn: 'Fleeting worlds. Quiet magic. Strange awakenings.',
     descTe: 'తక్షణ ప్రపంచాలు. నిశ్శబ్ద మాయ. విచిత్ర మేల్కొలుపులు.',
     bg: '/images/categories/stories-bg.webp',
