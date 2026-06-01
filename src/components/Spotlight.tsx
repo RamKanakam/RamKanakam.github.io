@@ -1,6 +1,5 @@
 import type { Language, Work } from '../types'
 import { isLive, getCategoryLabel } from '../utils/content'
-import { categoryOptions } from '../data/works'
 import { WorkMeta } from './WorkMeta'
 import { MarkdownBody } from './MarkdownBody'
 
@@ -25,9 +24,7 @@ export function Spotlight({
   const template =
     work.template ??
     (work.category === 'article' ? 'essay' : work.category === 'story' ? 'story' : 'novel')
-  const coverSrc = work.covers?.[language]
   const categoryLabel = getCategoryLabel(work, language)
-  const icon = categoryOptions.find((o) => o.value === work.category)?.icon
 
   const hasPrev = prevWork && prevWork.versions[language]
   const hasNext = nextWork && nextWork.versions[language]
