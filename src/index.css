@@ -173,6 +173,16 @@ body {
   background-attachment: fixed;
 }
 
+/* Uniform page overlay — covers nav, content, footer on every page */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: rgba(7, 7, 14, 0.55);
+}
+
 /* Film grain overlay — adds analogue texture on the dark background */
 body::after {
   content: '';

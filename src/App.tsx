@@ -83,17 +83,21 @@ function App() {
   const activeWork = filteredWorks[activeIndex] ?? null
   const prevWork = activeIndex > 0 ? filteredWorks[activeIndex - 1] : null
   const nextWork = activeIndex < filteredWorks.length - 1 ? filteredWorks[activeIndex + 1] : null
+  const readingWork = activeWorkId ? works.find((w) => w.id === activeWorkId) ?? null : null
 
   // ── Effects ───────────────────────────────────────────────────────────────
 
   // If the active work falls out of the filtered list while reading, fall back.
   useEffect(() => {
     if (!isReading) return
+    // If the user picked a browse category from the top nav while reading,
+    // let the query param clear instead of forcing a replacement work.
+    if (activeCategory !== 'all' && readingWork && readingWork.category !== activeCategory) return
     if (filteredWorks.some((w) => w.id === activeWorkId)) return
     const fallback = filteredWorks[Math.floor(filteredWorks.length / 2)]?.id ?? null
     if (fallback) setSearchParams({ work: fallback }, { replace: true })
     else setSearchParams({}, { replace: true })
-  }, [filteredWorks]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeCategory, activeWorkId, filteredWorks, isReading, readingWork, setSearchParams])
 
   // Scroll to top whenever the active work changes (entering reading or switching works).
   useEffect(() => {
@@ -163,6 +167,11 @@ function App() {
     setSearchParams({ work: id })
   }
 
+  function browseCategory(category: Category) {
+    setActiveCategory(category)
+    setSearchParams({}, { replace: true })
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="site-shell">
@@ -187,7 +196,7 @@ function App() {
             <button
               type="button"
               className={`site-nav__link${!isReading && activeCategory === 'all' ? ' site-nav__link--active' : ''}`}
-              onClick={() => { setActiveCategory('all'); if (isReading) setSearchParams({}) }}
+              onClick={() => browseCategory('all')}
             >
               {language === 'Telugu' ? 'ఉద్భవం' : 'HOME'}
             </button>
@@ -197,7 +206,7 @@ function App() {
               <button
                 type="button"
                 className={`site-nav__link${(isReading ? activeWork?.category === cat : activeCategory === cat) ? ' site-nav__link--active' : ''}`}
-                onClick={() => { setActiveCategory(cat); if (isReading) setSearchParams({}) }}
+                onClick={() => browseCategory(cat)}
               >
                 {language === 'Telugu' ? labelTe.toUpperCase() : labelEn.toUpperCase()}
               </button>
@@ -214,7 +223,7 @@ function App() {
             type="button"
           >
             <img
-              src={nextLang === 'Telugu' ? '/images/ui/telugu-button.png' : '/images/ui/english-button.png'}
+              src={language === 'Telugu' ? '/images/ui/telugu-button.webp' : '/images/ui/english-button.webp'}
               alt=""
               className="round-button__image"
             />
@@ -227,7 +236,6 @@ function App() {
         {!isReading && activeCategory === 'all' && (
           <div className="home-canvas">
             <section className="hero">
-              <div className="hero__overlay" aria-hidden="true" />
               <div className="hero__content">
                 {language === 'Telugu' ? (
                   <h1 className="hero__title">నక్షత్రపథం</h1>
@@ -353,6 +361,7 @@ function App() {
 
         {/* ── Browse view: filtered works grid ── */}
         {!isReading && activeCategory !== 'all' && (
+          <div className="browse-page">
           <section
             className="browse-section"
             aria-label={language === 'Telugu'
@@ -473,6 +482,7 @@ function App() {
               <EmptyState language={language} />
             )}
           </section>
+          </div>
         )}
 
         {/* ── Full-page reading view ── */}

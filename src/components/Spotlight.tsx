@@ -30,7 +30,7 @@ export function Spotlight({
   const hasNext = nextWork && nextWork.versions[language]
 
   return (
-    <article className={`reading-article reading-article--${template}`}>
+    <article className={`reading-article reading-article--${template} reading-article--cat-${work.category}`}>
 
       {/* ── Hero ─────────────────────────────────────────── */}
       <div className={`reading-hero reading-hero--generated cover-art--${work.category}`}>
