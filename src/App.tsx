@@ -2,10 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import './App.css'
 
-import type { Category, Language, SortDirection } from './types'
+import type { Category, Language } from './types'
 import { works, categoryNames, categoryNamesTelugu } from './data/works'
 import { hasLanguage, sortByDate, nextLanguage, getContent, getThemeConfig, getCategoryLabel } from './utils/content'
-import { FilterTray } from './components/FilterTray'
 import { CoverArt } from './components/CoverArt'
 import { EmptyState } from './components/EmptyState'
 import { Spotlight } from './components/Spotlight'
@@ -54,15 +53,31 @@ function App() {
 
   const [language, setLanguage] = useState<Language>('English')
   const [activeCategory, setActiveCategory] = useState<Category>('all')
-  const [sortDirection, setSortDirection] = useState<SortDirection>('newest')
+  const sortDirection = 'newest'
+  const [activeArticleTopic, setActiveArticleTopic] = useState<string>('All')
+  const nextLang = nextLanguage(language)
 
   // ── Derived ───────────────────────────────────────────────────────────────
+  const articleTopics = useMemo(() => {
+    const topics = new Set<string>()
+
+    works
+      .filter((work) => work.category === 'article')
+      .forEach((work) => {
+        const topic = work.tags[0]
+        if (topic) topics.add(topic)
+      })
+
+    return ['All', ...Array.from(topics)]
+  }, [])
+
   const filteredWorks = useMemo(() => {
     return works
       .filter((work) => hasLanguage(work, language))
       .filter((work) => activeCategory === 'all' || work.category === activeCategory)
+      .filter((work) => activeCategory !== 'article' || activeArticleTopic === 'All' || work.tags[0] === activeArticleTopic)
       .sort(sortByDate(sortDirection))
-  }, [activeCategory, language, sortDirection])
+  }, [activeArticleTopic, activeCategory, language, sortDirection])
 
   const activeIndex = Math.max(0, filteredWorks.findIndex((w) => w.id === activeWorkId))
   const activeWork = filteredWorks[activeIndex] ?? null
@@ -84,6 +99,10 @@ function App() {
   useEffect(() => {
     if (activeWorkId) window.scrollTo({ top: 0, behavior: 'instant' })
   }, [activeWorkId])
+
+  useEffect(() => {
+    if (activeCategory !== 'article') setActiveArticleTopic('All')
+  }, [activeCategory])
 
   // Update the browser tab title while reading.
   useEffect(() => {
@@ -170,7 +189,7 @@ function App() {
               className={`site-nav__link${!isReading && activeCategory === 'all' ? ' site-nav__link--active' : ''}`}
               onClick={() => { setActiveCategory('all'); if (isReading) setSearchParams({}) }}
             >
-              HOME
+              {language === 'Telugu' ? 'ఉద్భవం' : 'HOME'}
             </button>
           </li>
           {PANELS.map(({ cat, labelEn, labelTe }) => (
@@ -188,13 +207,17 @@ function App() {
         <div className="site-nav__actions">
           {isReading && <div className="reading-progress-bar" aria-hidden="true" />}
           <button
-            aria-label={`Switch to ${nextLanguage(language)}`}
+            aria-label={`Switch to ${nextLang}`}
             className="round-button"
-            onClick={() => setLanguage(nextLanguage(language))}
-            title={`Switch to ${nextLanguage(language)}`}
+            onClick={() => setLanguage(nextLang)}
+            title={`Switch to ${nextLang}`}
             type="button"
           >
-            {language === 'Telugu' ? 'తే' : 'En'}
+            <img
+              src={nextLang === 'Telugu' ? '/images/ui/telugu-button.png' : '/images/ui/english-button.png'}
+              alt=""
+              className="round-button__image"
+            />
           </button>
         </div>
       </nav>
@@ -214,11 +237,11 @@ function App() {
                 <span className="hero__ornament" aria-hidden="true">
                   <img src="/images/star.png" alt="" />
                 </span>
-                <p className="hero__subtitle">
+                {/* <p className="hero__subtitle">
                   {language === 'Telugu'
                     ? 'పదాలు నక్షత్రాలను కలిసే చోట'
                     : 'Where words meet the stars'}
-                </p>
+                </p> */}
               </div>
             </section>
 
@@ -338,25 +361,35 @@ function App() {
           >
             <div className="browse-header">
               <div className="browse-header__top">
-                <button
-                  type="button"
-                  className="browse-header__back"
-                  onClick={() => setActiveCategory('all')}
-                >
-                  ← {language === 'Telugu' ? 'హోమ్' : 'Home'}
-                </button>
                 <h2 className="browse-header__title">
                   {language === 'Telugu'
                     ? PANELS.find(p => p.cat === activeCategory)?.labelTe
                     : PANELS.find(p => p.cat === activeCategory)?.labelEn}
                 </h2>
               </div>
-              <FilterTray
-                activeCategory={activeCategory}
-                sortDirection={sortDirection}
-                onCategoryChange={setActiveCategory}
-                onSortToggle={() => setSortDirection(d => d === 'newest' ? 'oldest' : 'newest')}
-              />
+              {activeCategory === 'article' && (
+                <div
+                  className="article-topic-pills"
+                  role="tablist"
+                  aria-label={language === 'Telugu' ? 'వ్యాసాల అంశాలు' : 'Article topics'}
+                >
+                  {articleTopics.map((topic) => {
+                    const isActive = activeArticleTopic === topic
+                    return (
+                      <button
+                        key={topic}
+                        type="button"
+                        role="tab"
+                        aria-selected={isActive}
+                        className={`article-topic-pill${isActive ? ' article-topic-pill--active' : ''}`}
+                        onClick={() => setActiveArticleTopic(topic)}
+                      >
+                        {topic}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
             {filteredWorks.length > 0 ? (
@@ -365,15 +398,37 @@ function App() {
                   const version = work.versions[language]
                   if (!version) return null
                   const coverSrc = work.covers?.[language]
+                  const articleFrameImage = coverSrc ?? '/images/categories/articles-bg.webp'
+                  const storyFrameImage = coverSrc ?? '/images/categories/stories-bg.webp'
+                  const novelFrameImage = coverSrc ?? '/images/categories/novels-bg.webp'
+                  const isFramedCard = work.category === 'article' || work.category === 'story' || work.category === 'novel'
                   return (
                     <button
                       key={work.id}
                       type="button"
-                      className="work-card"
+                      className={`work-card work-card--${work.category}`}
                       onClick={() => selectWork(work.id)}
                     >
                       <div className="work-card__cover">
-                        {coverSrc ? (
+                        {work.category === 'article' ? (
+                          <img
+                            src={articleFrameImage}
+                            alt={version.title}
+                            className="work-card__img"
+                          />
+                        ) : work.category === 'story' ? (
+                          <img
+                            src={storyFrameImage}
+                            alt={version.title}
+                            className="work-card__img"
+                          />
+                        ) : work.category === 'novel' ? (
+                          <img
+                            src={novelFrameImage}
+                            alt={version.title}
+                            className="work-card__img"
+                          />
+                        ) : coverSrc ? (
                           <img
                             src={coverSrc}
                             alt={version.title}
@@ -382,14 +437,34 @@ function App() {
                         ) : (
                           <CoverArt work={work} language={language} />
                         )}
+                        {isFramedCard && (
+                          <h3 className="work-card__frame-title">{version.title}</h3>
+                        )}
                       </div>
-                      <div className="work-card__info">
-                        <span className="work-card__cat">
-                          {getCategoryLabel(work, language)}
-                        </span>
-                        <h3 className="work-card__title">{version.title}</h3>
-                        <p className="work-card__summary">{version.summary}</p>
-                      </div>
+                      {isFramedCard ? (
+                        <div
+                          className="work-card__info work-card__info--tags"
+                          aria-label={
+                            work.category === 'story'
+                              ? 'Story tags'
+                              : work.category === 'novel'
+                                ? 'Novel tags'
+                                : 'Article tags'
+                          }
+                        >
+                          {work.tags.map((tag) => (
+                            <span key={tag} className="work-card__tag">{tag}</span>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="work-card__info">
+                          <span className="work-card__cat">
+                            {getCategoryLabel(work, language)}
+                          </span>
+                          <h3 className="work-card__title">{version.title}</h3>
+                          <p className="work-card__summary">{version.summary}</p>
+                        </div>
+                      )}
                     </button>
                   )
                 })}
@@ -418,7 +493,7 @@ function App() {
       <footer className="footer">
         <div className="footer__brand">
           <span className="brand__telugu footer__site-name">నక్షత్రపథం</span>
-          <p>Anonymous for now. Built for Telugu, English,<br />and the worlds between.</p>
+          {/* <p>Anonymous for now. Built for Telugu, English,<br />and the worlds between.</p> */}
           <p className="footer__attribution">
             <a
               href="https://www.vecteezy.com/free-vector/star"
